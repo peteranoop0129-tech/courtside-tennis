@@ -2,13 +2,15 @@ import {visible, nearestFrame, CONNECTIONS} from './analysis.mjs';
 import {analyzeStroke as analyze, measurementForStroke as measurements, configFor, SOURCES_V2 as SOURCES} from './strokes.mjs';
 import {VIDEO_LIMITS,durationError,sizeError,makePlan,formatTime,markerCovered} from './video-plan.mjs';
 import {buildAdvice} from './coaching.mjs';
+import {initializePlayers,renderPlayer,selectedReference,selectedPlayerId} from './player-ui.mjs';
 const $ = id => document.getElementById(id);
 const video=$('video'), overlay=$('overlay'), ctx=overlay.getContext('2d');
+const referenceClips=new Map();
 const state={url:null,file:null,duration:0,plan:null,advice:null,frames:[],result:null,prep:0,contact:null,trophy:null,busy:false,token:0,worker:null,requests:new Map(),requestId:0,referenceURL:null,loading:false,loadId:0};
 const controls=['play','scrub','back-frame','next-frame','mark-prep','mark-trophy','mark-contact','clear-marks','stroke','hand','view','ordinary','analyze','video-file','video-file-empty','speed','analysis-scope','clip-start','clip-end','set-clip-start','set-clip-end'];
 const escapeTime=t=>`${Number(t).toFixed(2)}s`;
 const status=(text,error=false)=>{$('status').textContent=text;$('status').classList.toggle('error',error);};
-const config=()=>({stroke:$('stroke').value,trophy:state.trophy,width:video.videoWidth,height:video.videoHeight,hand:$('hand').value,view:$('view').value,ordinary:$('ordinary').checked,prep:state.prep,contact:state.contact,duration:state.duration,plan:state.plan});
+const config=()=>({stroke:$('stroke').value,trophy:state.trophy,width:video.videoWidth,height:video.videoHeight,hand:$('hand').value,view:$('view').value,ordinary:$('ordinary').checked,prep:state.prep,contact:state.contact,duration:state.duration,plan:state.plan,learningPlayer:selectedPlayerId()});
 function syncControls(){
   const loaded=!!state.url&&!state.loading;
   for(const id of controls){
@@ -86,7 +88,7 @@ function updateRange(){
 function rangeChanged(){if(state.busy)return;video.pause();clearResults();state.prep=$('analysis-scope').value==='detail'?Number($('clip-start').value):0;state.contact=null;state.trophy=null;updateMarks();updateRange();syncControls();}
 function renderAdvice(){
   const advice=state.advice;if(!advice)return;
-  const summary=$('coach-summary');summary.replaceChildren(node('span',advice.kind==='video'?'来自这次画面 · 候选建议':advice.kind==='general'?'通用练习 · 不是个人诊断':'先改善拍摄','advice-label'),node('h2',advice.heading),node('p',advice.summary));
+  const summary=$('coach-summary');summary.replaceChildren(node('span',advice.kind==='video'?'画面提示 · 值得尝试':advice.kind==='suggestion'?'结合可见动作 · 优化尝试':advice.kind==='general'?'基础练习 · 可以直接试':'先改善拍摄','advice-label'),node('h2',advice.heading),node('p',advice.summary));
   for(const note of advice.notes)summary.append(node('p',note,'advice-note'));
   $('coach-cards').replaceChildren();
   for(const card of advice.cards){
@@ -94,9 +96,11 @@ function renderAdvice(){
     if(Number.isFinite(card.time)){const jump=node('button',`先看 ${formatTime(card.time)} 的画面 ↗`,'small-button');jump.addEventListener('click',()=>jumpTo(card.time));article.append(jump);}
     const steps=node('ol');for(const step of card.steps)steps.append(node('li',step));article.append(node('h4','下一组怎么练'),steps,node('h4','练完怎么自查'),node('p',card.check),node('p','不要这样练：'+card.avoid,'coach-avoid'));
     if(card.source&&SOURCES[card.source]){const link=node('a',SOURCES[card.source].title+' ↗','coach-source');link.href=SOURCES[card.source].url;link.target='_blank';link.rel='noopener noreferrer';article.append(link);}
-    if(card.rule){const details=node('details');details.append(node('summary','为什么触发这条建议'),node('p',card.rule));article.append(details);}
+    if(card.rule){const details=node('details');details.append(node('summary','建议依据与使用边界'),node('p',card.rule));article.append(details);}
     article.append(node('small','练习次数是本次试用的建议安排，不是技术标准；不适时停止。','practice-note'));$('coach-cards').append(article);
   }
+  const reference=selectedReference();
+  if(advice.kind!=='capture'){const box=node('div',null,'reference-note-result');box.append(node('strong','你选择的学习对象：'+reference.name),node('p',reference.compatible?reference.focus:'当前反手类型不匹配，学习参考不参与这次动作建议。'),node('p','这是额外的观看练习方向，AI测量与建议不会改成职业选手相似度评分。'));if(reference.warnings.length)box.append(node('p',reference.warnings.join(' ')));$('coach-cards').append(box);}
   if(state.plan?.overview){const detail=node('button','以当前播放位置选一段细看 ↗','small-button');detail.addEventListener('click',()=>{const start=Math.max(0,Math.min(state.duration-.5,video.currentTime-2));$('analysis-scope').value='detail';$('clip-start').value=start.toFixed(1);$('clip-end').value=Math.min(state.duration,start+10).toFixed(1);rangeChanged();status('已选好当前附近的片段。标记这次动作后，再点分析。');});summary.append(detail);}
 }
 async function run(){
@@ -215,8 +219,8 @@ async function jumpTo(t){if(state.busy||!state.url)return;video.pause();try{awai
 function exportReport(){
   if(!state.result)return;
   const {rows,...summary}=state.result;
-  const report={app:'COURTSIDE',version:'v4',generatedAt:new Date().toISOString(),video:{name:state.file,duration:state.duration,width:video.videoWidth,height:video.videoHeight},settings:config(),summary,sources:SOURCES,limitations:['AI人体识别加规则式提醒，不是云端视觉大模型。','仅二维投影，数值阈值未经个人及教练标注校准。','不检测球、球拍、准确触球、真实力量、重心或损伤。','可用画面比例不是识别准确率。没有触发提醒不等于动作正确。','本报告不包含视频或原始人体关键点。']};
-  const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download='网球练习报告_v4_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status('报告已保存到浏览器下载目录，不包含视频。');
+  const report={app:'COURTSIDE',version:'v5',generatedAt:new Date().toISOString(),video:{name:state.file,duration:state.duration,width:video.videoWidth,height:video.videoHeight},settings:config(),learningReference:selectedReference(),summary,sources:SOURCES,limitations:['AI人体识别加规则式提醒，不是云端视觉大模型。','仅二维投影，数值阈值未经个人及教练标注校准。','不检测球、球拍、准确触球、真实力量、重心或损伤。','可用画面比例不是识别准确率。没有触发提醒不等于动作正确。','本报告不包含视频或原始人体关键点。']};
+  const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download='网球练习报告_v5_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status('报告已保存到浏览器下载目录，不包含视频。');
 }
 function applyStroke(reset=true){
   const stroke=$('stroke').value,meta=configFor(stroke),isServe=stroke==='serve';
@@ -234,7 +238,7 @@ function applyStroke(reset=true){
     if(state.frames.length)renderReport();
     status('已切换到'+meta.name+'。请重新确认练习类型并标记阶段，已有关键点可直接复用。');
   }
-  draw();
+  renderPlayer();showReferenceClip();draw();
 }
 $('analysis-scope').addEventListener('change',rangeChanged);
 for(const id of ['clip-start','clip-end'])$(id).addEventListener('change',rangeChanged);
@@ -249,7 +253,7 @@ $('speed').addEventListener('change',()=>{video.playbackRate=Number($('speed').v
 $('back-frame').addEventListener('click',()=>jumpTo(video.currentTime-1/30));$('next-frame').addEventListener('click',()=>jumpTo(video.currentTime+1/30));
 $('mark-prep').addEventListener('click',()=>mark('prep'));$('mark-trophy').addEventListener('click',()=>mark('trophy'));$('mark-contact').addEventListener('click',()=>mark('contact'));
 $('clear-marks').addEventListener('click',()=>{state.prep=$('analysis-scope').value==='detail'?Number($('clip-start').value):0;state.contact=null;state.trophy=null;updateMarks();if(state.frames.length)renderReport();status('准备起点已恢复当前分析范围起点，触球和举拍参考已清空。');});
-for(const id of ['hand','view','ordinary'])$(id).addEventListener('change',()=>{if(state.frames.length)renderReport();draw();});
+for(const id of ['hand','view','ordinary'])$(id).addEventListener('change',()=>{renderPlayer();if(state.frames.length)renderReport();draw();});
 $('show-pose').addEventListener('change',draw);$('export').addEventListener('click',exportReport);
 for(const event of ['timeupdate','seeked','play','pause','ended','loadeddata'])video.addEventListener(event,updateTime);
 if(video.requestVideoFrameCallback){const callback=()=>{if(!state.busy)updateTime();video.requestVideoFrameCallback(callback);};video.requestVideoFrameCallback(callback);}
@@ -260,13 +264,15 @@ $('guide-open').addEventListener('click',()=>$('guide').showModal());$('guide-cl
 $('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close();}});
 for(const event of ['dragover','dragenter'])$('stage').addEventListener(event,e=>{e.preventDefault();$('stage').classList.add('dragging');});
 for(const event of ['dragleave','drop'])$('stage').addEventListener(event,e=>{e.preventDefault();$('stage').classList.remove('dragging');if(event==='drop')loadVideo(e.dataTransfer?.files?.[0]);});
+function referenceKey(){return selectedPlayerId()+':'+$('stroke').value;}
+function showReferenceClip(){const clip=referenceClips.get(referenceKey()),ref=$('reference-video');ref.pause();if(clip){if(ref.src!==clip.url)ref.src=clip.url;ref.hidden=false;$('reference-empty').hidden=true;$('reference-status').textContent=clip.name;state.referenceURL=clip.url;ref.playbackRate=Number($('reference-speed').value);}else{ref.removeAttribute('src');ref.load();ref.hidden=true;$('reference-empty').hidden=false;$('reference-status').textContent='';state.referenceURL=null;}}
 $('reference-file').addEventListener('change',async e=>{
   const file=e.target.files?.[0];e.target.value='';if(!file)return;
   if(file.size>250*1024*1024){$('reference-status').textContent='参考视频请控制在250MB以内。';return;}
-  const ref=$('reference-video');ref.pause();if(state.referenceURL)URL.revokeObjectURL(state.referenceURL);state.referenceURL=URL.createObjectURL(file);ref.src=state.referenceURL;ref.hidden=false;$('reference-empty').hidden=true;ref.playbackRate=Number($('reference-speed').value);$('reference-status').textContent=file.name;
+  const key=referenceKey(),previous=referenceClips.get(key);if(previous)URL.revokeObjectURL(previous.url);referenceClips.set(key,{url:URL.createObjectURL(file),name:file.name});showReferenceClip();
 });
 $('reference-video').addEventListener('error',()=>{$('reference-status').textContent='参考视频无法解码。请尝试H.264 MP4。';});
 $('reference-speed').addEventListener('change',()=>{$('reference-video').playbackRate=Number($('reference-speed').value);});
-window.addEventListener('pagehide',()=>{stopWorker();if(state.url)URL.revokeObjectURL(state.url);if(state.referenceURL)URL.revokeObjectURL(state.referenceURL);});
+window.addEventListener('pagehide',()=>{stopWorker();if(state.url)URL.revokeObjectURL(state.url);for(const clip of referenceClips.values())URL.revokeObjectURL(clip.url);referenceClips.clear();});
 if(location.protocol==='file:')status('请用项目内的启动脚本打开。本地模型需要通过本机HTTP服务加载，不能直接双击HTML。',true);
-applyStroke(false);syncControls();document.body.dataset.ready='true';
+initializePlayers(config,()=>{showReferenceClip();if(state.result&&!state.busy)renderAdvice();});applyStroke(false);syncControls();document.body.dataset.ready='true';
