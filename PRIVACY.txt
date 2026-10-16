@@ -1,0 +1,13 @@
+COURTSIDE v3 privacy and limits
+
+The application code and model are public. Selected videos are read and processed only in the user's browser. There is no video upload endpoint, account service, advertising, or analytics in this application.
+
+GitHub Pages serves the app files and may process normal hosting access logs. Choosing a video does not send that video or its filename to this site. External teaching links open only when clicked and follow their publishers' privacy policies.
+
+The offline cache stores program/model files, not selected videos or exported reports. The browser or operating system may clear its cache. Reports are saved only when the user explicitly downloads them.
+
+Pose analysis is a limited 2D observation aid. Trial thresholds are not certified technique standards, and coaching accuracy has not been validated on tennis ground-truth data. Not a medical or injury-risk assessment. Roger Federer does not endorse or operate this app.
+
+Runtime: @mediapipe/tasks-vision 0.10.21, declared Apache-2.0, see vendor/LICENSE-2.0.txt.
+Model source: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task
+Documentation: https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker

@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "COURTSIDE 我的网球练习",
+  "short_name": "网球练习",
+  "description": "正手、单反、双反与发球的视频回看。AI在设备本地分析，不上传视频。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f5ef",
+  "theme_color": "#173d31",
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

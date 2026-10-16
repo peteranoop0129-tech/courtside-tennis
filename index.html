@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; worker-src 'self'; connect-src 'self'; media-src 'self' blob:; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173d31"><meta name="description" content="在你的设备上分析网球正手、单反、双反和发球视频。慢放、关键点、可回看的练习提醒。">
+<title>COURTSIDE · 我的网球练习 v3</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="网球练习"><script type="module" src="app.mjs"></script><script type="module" src="pwa.mjs"></script>
+</head>
+<body>
+<header class="masthead"><a href="./" class="brand" aria-label="COURTSIDE 首页"><span class="ball" aria-hidden="true"></span><span>COURTSIDE<small>我的网球练习</small></span></a><div class="mast-right"><span class="private"><i></i>视频不离开设备</span><span class="version">v3</span></div></header>
+<main>
+<div class="page-heading"><div><span class="eyebrow" id="practice-eyebrow">PERSONAL PRACTICE / FOREHAND</span><h1>先看清这一拍。</h1></div><button class="text-button" id="guide-open">怎么拍更清楚 <span aria-hidden="true">↗</span></button></div>
+<section class="pwa-panel" aria-label="安装与离线准备"><div><span class="eyebrow">PHONE APP / <span id="network-state">在线</span></span><h2 id="pwa-title">把练习场装进口袋。</h2><p id="pwa-status" role="status" aria-live="polite">正在检查离线资源…</p></div><div class="pwa-actions"><button id="install-app" class="small-button">添加到手机桌面</button><button id="offline-prepare" class="primary" disabled>准备离线使用</button></div><progress id="offline-progress" max="100" value="0" hidden aria-label="离线资源下载进度"></progress></section>
+<div class="workspace">
+<section class="video-work" aria-label="视频回看">
+<div class="video-heading"><span id="file-name">你的训练视频</span><label class="small-button file-label">选择视频<input id="video-file" type="file" accept="video/*"></label></div>
+<div class="stage" id="stage">
+<div id="empty-state" class="empty-state"><div class="court-mark" aria-hidden="true"><i></i><b></b></div><h2>把这一拍放进来</h2><p>选择手机拍摄的视频，或拖到这里。<br>一次完整动作就够，建议 5–15 秒。</p><label class="primary file-label">导入训练视频<input id="video-file-empty" type="file" accept="video/*"></label><span class="empty-note">最长 30 秒 · 单人全身 · 固定机位</span></div>
+<video id="video" playsinline muted preload="metadata" hidden></video><canvas id="overlay" hidden aria-label="AI识别的身体关键点"></canvas>
+<div id="busy-overlay" class="busy-overlay" hidden><div class="spinner" aria-hidden="true"></div><strong id="busy-label">正在准备</strong><span id="busy-detail">只在当前设备计算</span><button id="cancel" class="small-button">停止分析</button></div>
+<div class="video-badge" id="overlay-state" hidden>等待分析</div>
+</div>
+<div class="transport"><button id="play" class="round-control" disabled aria-label="播放视频">▶</button><span id="time" class="time">0.00 / 0.00</span><input id="scrub" aria-label="视频进度" type="range" min="0" max="1" step="0.01" value="0" disabled><label class="speed-label"><span class="sr-only">播放速度</span><select id="speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25" selected>0.25×</option></select></label></div>
+<div class="mark-controls"><div class="frame-controls"><button id="back-frame" class="small-button" disabled aria-label="后退三十分之一秒">‹ 小步后退</button><button id="next-frame" class="small-button" disabled aria-label="前进三十分之一秒">小步前进 ›</button></div><label class="check compact"><input id="show-pose" type="checkbox" checked>身体关键点</label></div>
+<div class="phase-strip"><button id="mark-prep" disabled><span>准备起点</span><strong id="prep-time">未导入</strong><small>在当前画面标记</small></button><button id="mark-trophy" hidden disabled><span>举拍参考</span><strong id="trophy-time">待标记</strong><small>抛球后、向上挥拍前</small></button><button id="mark-contact" disabled><span>触球参考</span><strong id="contact-time">待标记</strong><small>找到拍碰球附近的画面</small></button><button id="clear-marks" class="text-button" aria-label="重置准备起点和触球参考" disabled>重置</button></div>
+<p class="caption">触球参考由你标记。AI 只识别人体，不识别球和拍；小步回看每次移动 1/30 秒，不等于源视频逐帧。</p>
+</section>
+<aside class="setup" aria-label="训练设置">
+<div class="section-label">本次练习</div><h2>一拍一拍地改。</h2><p class="muted" id="stroke-hint">观察准备、持拍臂空间，以及对应机位能看清的身体变化。</p>
+<label class="field">动作类型<select id="stroke"><option value="forehand">正手</option><option value="backhand1">单手反手</option><option value="backhand2">双手反手</option><option value="serve">发球</option></select></label>
+<label class="field">持拍手<select id="hand"><option value="right">右手</option><option value="left">左手</option></select></label>
+<label class="field">拍摄角度<select id="view"><option value="quarter">斜侧面</option><option value="side">持拍侧的正侧面</option><option value="front">正面</option><option value="unknown">不确定 / 其他</option></select></label>
+<label class="check condition"><input id="ordinary" type="checkbox"><span><strong id="condition-label">这段是腰高来球的一次普通正手</strong><small id="condition-exclude">高低球、跑动救球、截击不勾选。</small></span></label>
+<button id="analyze" class="primary analyze-button" disabled>分析这一拍 <span aria-hidden="true">↗</span></button><progress id="progress" value="0" max="100" hidden aria-label="分析进度"></progress><p id="status" class="status" role="status" aria-live="polite">导入视频后即可开始。</p>
+<div class="engine-note"><span class="engine-dot"></span><p><strong>本机 AI 识别 + 规则式提醒</strong><br>不用注册，不传视频。数值提醒还在试用，不冒充专业诊断。</p></div>
+</aside>
+</div>
+<section id="results" class="results" aria-labelledby="results-title"><div class="section-heading"><div><span class="eyebrow">REVIEW YOUR SHOT</span><h2 id="results-title">你的动作回看</h2></div><button id="export" class="small-button" disabled>保存本次报告 ↓</button></div>
+<div id="results-empty" class="results-empty">这里不会先给你一个分数。分析后，每条观察都尽量带上画面依据。</div>
+<div id="results-body" hidden><div class="quality-row"><span id="quality-label"></span><span id="quality-detail"></span></div><div id="metrics" class="metrics"></div><div class="chart-wrap"><div class="chart-title"><span id="chart-label">持拍肘 · 画面夹角随时间变化</span><small>点击曲线回看，不是目标曲线</small></div><canvas id="chart" role="img" aria-label="持拍肘画面夹角时间曲线"></canvas></div><div id="findings" class="findings"></div></div>
+</section>
+<section class="reference" aria-labelledby="reference-title"><div class="reference-copy"><span class="eyebrow">INSPIRED BY ROGER FEDERER</span><h2 id="reference-title">学费德勒。<br>不必长成费德勒。</h2><p id="reference-focus">把他当作学习参考，不把他的每个关节角度当标准。先观察准备、人与球的距离和挥拍空间，再回看自己。</p><p class="reference-note">非费德勒官方产品，无代言或合作关系。没有预装他的影像，也不提供相似度评分。</p><div class="reference-links" id="reference-links"><a href="https://www.youtube.com/watch?v=WXSI9PZrmI0" target="_blank" rel="noopener noreferrer">USTA 官方正手教学 ↗</a><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3761830/" target="_blank" rel="noopener noreferrer">正手动作研究综述 ↗</a></div></div>
+<div class="reference-view"><div class="reference-top"><strong>我的参考视频</strong><label class="small-button file-label">选择参考<input id="reference-file" type="file" accept="video/*"></label></div><div id="reference-empty" class="reference-empty"><span>01 / WATCH</span><p>放入你有权使用的示范片段。<br>两个播放器可以各自慢放、拖动。</p><small>选相近的机位更好比较。不是自动动作匹配。</small></div><video id="reference-video" playsinline muted controls hidden></video><label class="reference-speed">参考片段速度<select id="reference-speed"><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1">1×</option></select></label><p id="reference-status" class="caption" role="status"></p></div></section>
+<details class="methods"><summary>这些提醒依据什么？哪里不能相信它？</summary><div class="method-grid"><div><h3>教学原则有出处</h3><p>USTA 与 Top Tennis Training 教学用于各动作的准备、空间与阶段观察；正手研究综述只用于正手。它们没有给本应用的数值阈值背书。</p></div><div><h3>数字不是标准答案</h3><p>角度是单机位的二维投影，受机位、遮挡和转身影响。165°、25°、70°、95°、距离比例等只是 v3 筛出候选片段的提醒阈值，未做教练标注验证，不能当作费德勒标准。</p></div><div><h3>有些东西确实看不见</h3><p>本版不识别握拍、拍面、球和球速，不推断真实发力、重心和受伤风险。没触发提醒不等于动作正确。不适或疼痛时停止练习。</p></div><div><h3>视频不上传</h3><p>模型和脚本从本站下载，可缓存到当前设备；视频只在设备内存处理。关页后清空，报告仅在你点击保存时下载。外部教学链接只有点击后才打开。</p></div></div></details>
+<footer><span>COURTSIDE / v3 · 正手 / 单反 / 双反 / 发球</span><span>今天只改一件事。</span></footer>
+</main>
+<dialog id="guide"><div class="dialog-heading"><h2>拍得清楚，比拍得长重要。</h2><button id="guide-close" class="small-button" aria-label="关闭拍摄说明">关闭</button></div><ol><li><strong>先选动作类型。</strong>支持正手、单手反手、双手反手和常规上手发球。一段只放一次完整动作，保留准备到收拍。削球、截击和跑动救球暂不套提醒。</li><li><strong>手机固定，别跟着你摇。</strong>全身入镜，脚和拍都别切掉。发球要留够头顶空间，双反要看得到两只手臂。</li><li><strong>先用持拍侧的斜侧面。</strong>能看到手臂和身体。纯侧面更适合看屈膝，正面更适合看上身侧倾。</li><li><strong>光线够亮，画面别糊。</strong>可用手机的60fps拍摄；本版分析约每秒采样10次，不能精测高速触球。</li><li><strong>导入后先标一下。</strong>慢放到你认为拍碰球的附近，点“触球参考”。准备起点默认片头，可以修改。发球还需标记“举拍参考”，位于准备与触球之间。</li></ol><p class="caption">在场地安全的位置固定手机，不要放在跑动或他人击球路线内。</p></dialog>
+<dialog id="install-guide"><div class="dialog-heading"><h2>安装到手机桌面</h2><button id="install-close" class="small-button">关闭</button></div><section id="apple-install"><h3>iPhone / iPad</h3><p>用 Safari 打开这个网址，点“分享”，选择“添加到主屏幕”，再点“添加”。如果看不到该选项，先退出微信或钉钉内置浏览器，用 Safari 打开。</p></section><section id="android-install"><h3>安卓手机</h3><p>用 Chrome 打开这个网址，点右上角菜单，选择“添加到主屏幕”或“安装应用”。有安装弹窗时可直接确认。</p></section><p class="caption">这是可安装网页应用，不是 App Store 或安卓商店安装包。先完成“准备离线使用”；浏览器或系统清理存储后，可能需要重新下载模型。分析期间请保持应用在前台。</p></dialog></body></html>
