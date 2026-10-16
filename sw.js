@@ -1,7 +1,7 @@
 /* Offline cache contains program assets only, never selected videos/reports. */
 const BASE = new URL('./', self.location.href);
 const PREFIX = 'courtside-' + BASE.pathname.replace(/[^a-z0-9]/gi, '_') + '-';
-const CACHE = PREFIX + 'v3.0.0';
+const CACHE = PREFIX + 'v3.0.1';
 const SHELL = ['index.html','style.css','app.mjs','analysis.mjs','strokes.mjs','pose-worker.js','pwa.mjs','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 const MODEL = ['vendor/vision_bundle.mjs','vendor/wasm/vision_wasm_internal.js','vendor/wasm/vision_wasm_internal.wasm','vendor/wasm/vision_wasm_nosimd_internal.js','vendor/wasm/vision_wasm_nosimd_internal.wasm','models/pose_landmarker_lite.task'];
 const ASSETS = [...SHELL,...MODEL];
@@ -19,7 +19,20 @@ async function warm(port){
   const cache=await caches.open(CACHE);
   for(let i=0;i<ASSETS.length;i++){
     const name=ASSETS[i],url=pathFor(name);
-    if(!(await cache.match(url))){const response=await fetch(url,{cache:'reload'});if(!response.ok)throw new Error('资源下载失败：'+name+' ('+response.status+')');await cache.put(url,response);}
+    if(!(await cache.match(url))){
+      const controller=new AbortController();let timeout;
+      const keepAlive=()=>{clearTimeout(timeout);timeout=setTimeout(()=>controller.abort(),180000);};keepAlive();
+      try{
+        const response=await fetch(url,{cache:'reload',signal:controller.signal});
+        if(!response.ok)throw new Error('资源下载失败：'+name+' ('+response.status+')');
+        if(response.body){
+          const reader=response.body.getReader(),chunks=[];let bytes=0,lastNotice=0;
+          while(true){const {done,value}=await reader.read();if(done)break;keepAlive();chunks.push(value);bytes+=value.byteLength;if(Date.now()-lastNotice>250){port.postMessage({type:'progress',done:i,total:ASSETS.length,bytes});lastNotice=Date.now();}}
+          const headers=new Headers(response.headers);headers.delete('content-encoding');headers.delete('content-length');
+          await cache.put(url,new Response(new Blob(chunks),{status:200,headers}));
+        }else await cache.put(url,response);
+      }finally{clearTimeout(timeout);}
+    }
     port.postMessage({type:'progress',done:i+1,total:ASSETS.length});
   }
   const status=await inventory();if(!status.ready)throw new Error('缓存尚不完整，请重试。');

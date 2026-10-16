@@ -23,7 +23,7 @@ async function prepare(){
   if(!registration||busy)return;busy=true;$('offline-prepare').disabled=true;$('offline-progress').hidden=false;$('offline-progress').value=0;
   show('正在把程序和姿态模型保存到当前设备，请保持页面打开。');
   try{
-    const result=await askWorker('warm',data=>{$('offline-progress').value=data.done/data.total*100;show(`正在准备离线资源 ${data.done}/${data.total}，首次下载约25MB。`);});
+    const result=await askWorker('warm',data=>{$('offline-progress').value=data.done/data.total*100;show(data.bytes?`正在下载离线组件 ${data.done+1}/${data.total} · 本项已接收 ${(data.bytes/1000000).toFixed(1)}MB`:`正在准备离线资源 ${data.done}/${data.total}，首次下载约25MB。`);});
     ready=result.ready;if(!ready)throw new Error('离线资源尚未准备完整。');
     $('offline-prepare').textContent='重新检查离线资源';updateNetwork();
     document.body.dataset.offlineReady='true';
