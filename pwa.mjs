@@ -25,7 +25,7 @@ async function prepare(){
   try{
     const result=await askWorker('warm',data=>{$('offline-progress').value=data.done/data.total*100;show(data.bytes?`正在下载离线组件 ${data.done+1}/${data.total} · 本项已接收 ${(data.bytes/1000000).toFixed(1)}MB`:`正在准备离线资源 ${data.done}/${data.total}，首次下载约25MB。`);});
     ready=result.ready;if(!ready)throw new Error('离线资源尚未准备完整。');
-    $('offline-prepare').textContent='重新检查离线资源';updateNetwork();
+    $('offline-prepare').textContent='检查模型缓存';updateNetwork();
     document.body.dataset.offlineReady='true';
     if(navigator.storage?.persist)navigator.storage.persist().catch(()=>{});
   }catch(error){ready=false;document.body.dataset.offlineReady='false';show(error.message+' 未完成前请保持联网使用。',true);}
@@ -45,8 +45,8 @@ if('serviceWorker' in navigator && window.isSecureContext){
     registration=await navigator.serviceWorker.ready;
     const result=await askWorker('status');ready=result.ready;document.body.dataset.offlineReady=String(ready);
     $('offline-prepare').disabled=false;
-    if(ready){$('offline-prepare').textContent='重新检查离线资源';updateNetwork();}
-    else show('先点“准备离线使用”，把程序和模型保存到手机。视频不会上传。');
+    if(ready){$('offline-prepare').textContent='检查模型缓存';updateNetwork();}
+    else show('联网可直接导入视频。缓存模型是可选项，准备好后可断网使用。');
     reg.update().catch(()=>{});
   }).catch(error=>show('离线服务未启动。请在手机 Safari 或 Chrome 中通过 HTTPS 打开。'+error.message,true));
 }else show('当前地址或浏览器不支持离线安装。请用 HTTPS 链接在手机 Safari 或 Chrome 中打开。',true);

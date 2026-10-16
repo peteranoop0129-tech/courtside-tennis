@@ -1,4 +1,4 @@
-COURTSIDE v3 privacy and limits
+COURTSIDE v4 privacy and limits
 
 The application code and model are public. Selected videos are read and processed only in the user's browser. There is no video upload endpoint, account service, advertising, or analytics in this application.
 

@@ -1,8 +1,8 @@
 /* Offline cache contains program assets only, never selected videos/reports. */
 const BASE = new URL('./', self.location.href);
 const PREFIX = 'courtside-' + BASE.pathname.replace(/[^a-z0-9]/gi, '_') + '-';
-const CACHE = PREFIX + 'v3.0.1';
-const SHELL = ['index.html','style.css','app.mjs','analysis.mjs','strokes.mjs','pose-worker.js','pwa.mjs','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
+const CACHE = PREFIX + 'v4.0.0';
+const SHELL = ['index.html','style.css','v4.css','app.mjs','analysis.mjs','strokes.mjs','video-plan.mjs','coaching.mjs','pose-worker.js','pwa.mjs','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 const MODEL = ['vendor/vision_bundle.mjs','vendor/wasm/vision_wasm_internal.js','vendor/wasm/vision_wasm_internal.wasm','vendor/wasm/vision_wasm_nosimd_internal.js','vendor/wasm/vision_wasm_nosimd_internal.wasm','models/pose_landmarker_lite.task'];
 const ASSETS = [...SHELL,...MODEL];
 const pathFor = name => new URL(name,BASE).href;
@@ -13,7 +13,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   await self.skipWaiting();
 })()));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
-async function inventory(){const cache=await caches.open(CACHE);let count=0;for(const name of ASSETS)if(await cache.match(pathFor(name)))count++;return {count,total:ASSETS.length,ready:count===ASSETS.length,version:'v3'};}
+async function inventory(){const cache=await caches.open(CACHE);let count=0;for(const name of ASSETS)if(await cache.match(pathFor(name)))count++;return {count,total:ASSETS.length,ready:count===ASSETS.length,version:'v4'};}
 let warming=null;
 async function warm(port){
   const cache=await caches.open(CACHE);
@@ -56,6 +56,6 @@ self.addEventListener('fetch',event=>{
     const cache=await caches.open(CACHE),key=isHome?pathFor('index.html'):new URL(url.pathname,BASE.origin).href;
     const saved=await cache.match(key);if(saved)return saved;
     try{const response=await fetch(request);if(response.ok)await cache.put(key,response.clone());return response;}
-    catch(error){return new Response('离线资源未准备完整。请联网后点击“准备离线使用”。',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});}
+    catch(error){return new Response('离线资源未准备完整。请联网后点击“缓存模型（可选）”。',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});}
   })());
 });
