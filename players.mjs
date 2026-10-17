@@ -45,5 +45,5 @@ export function learningReference(id,stroke='forehand',hand='right'){
  if(player.hand!==hand)warning.push(`${player.name}是${player.hand==='left'?'左':'右'}手持拍，你选的是${hand==='left'?'左':'右'}手。请按“持拍侧/非持拍侧”对应，不照搬画面左右；这里没有自动镜像。`);
  const video=(!player.videoStrokes||player.videoStrokes.includes(stroke))?player.video:null;
  if(compatible&&!video)warning.push('当前已核实的观看链接不覆盖这个动作。可以查看选手资料，或导入你有权使用的对应片段。');
- return {playerId:player.id,name:player.name,english:player.english,hand:player.hand,backhand:player.backhand,stroke,compatible,warnings:warning,focus:compatible?(player.focus[stroke]||'选择一个适用动作再观察。'):'反手类型不匹配，不提供该选手的当前反手观察清单。',checklist:compatible?(COMMON[stroke]||[]):[],caution:player.caution,profile:player.profile,video:compatible?video:null,provenance:'应用编写的观看问题，不是球员本人指导，也不是对其视频的逐帧测量结论。',modelEffect:'仅改变学习参考与观看清单，不改变AI测量、纠错阈值或给出相似度分数。'};
+ return {playerId:player.id,name:player.name,english:player.english,hand:player.hand,backhand:player.backhand,stroke,compatible,warnings:warning,focus:compatible?(player.focus[stroke]||'选择一个适用动作再观察。'):'反手类型不匹配，不提供该选手的当前反手观察清单。',checklist:compatible?(COMMON[stroke]||[]):[],caution:player.caution,profile:player.profile,video:compatible?video:null,provenance:'应用编写的观看问题，不是球员本人指导，也不是对其视频的逐帧测量结论。',modelEffect:'选手选择会改变练习重点和步骤；你的测量值与纠错阈值不变，不生成职业选手相似度分数。'};
 }

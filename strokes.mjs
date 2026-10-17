@@ -44,10 +44,10 @@ function minRow(rows,key){return rows.filter(r=>r.valid&&Number.isFinite(r[key])
 function complete(rows,key,minimum=3){return rows.length>=minimum&&rows.filter(r=>r.valid&&Number.isFinite(r[key])).length/rows.length>=.8;}
 export function analyzeStroke(frames,options){
   const stroke=STROKES[options.stroke]?options.stroke:'forehand',config={...options,stroke},meta=configFor(stroke);
-  if(stroke==='forehand')return {...analyzeForehand(frames,config),version:'v5.0-observation',stroke,strokeName:meta.name};
+  if(stroke==='forehand')return {...analyzeForehand(frames,config),version:'v6.0-observation',stroke,strokeName:meta.name};
   const {prep=0,contact=null,trophy=null,duration=0,ordinary=false,view='unknown'}=config;
   const rows=frames.map(f=>measurementForStroke(f,config)),total=frames.length,detected=frames.filter(f=>f.poses?.length===1).length,reliable=rows.filter(r=>r.valid).length,multiple=rows.filter(r=>r.multiple).length,coverage=total?reliable/total:0;
-  const result={version:'v5.0-observation',stroke,strokeName:meta.name,total,detected,reliable,multiple,coverage,rows,findings:[],metrics:Object.fromEntries(['elbow','auxElbow','knee','tilt','armSpace','tossLift','wristRise'].map(key=>[key,span(rows,key)])),phaseReady:false,status:'limited'};
+  const result={version:'v6.0-observation',stroke,strokeName:meta.name,total,detected,reliable,multiple,coverage,rows,findings:[],metrics:Object.fromEntries(['elbow','auxElbow','knee','tilt','armSpace','tossLift','wristRise'].map(key=>[key,span(rows,key)])),phaseReady:false,status:'limited'};
   const add=(kind,title,body,time=null,extra={})=>result.findings.push({kind,title,body,time,...extra});
   if(!total||!detected){result.status='unusable';add('quality','没有找到可用的人体动作','请使用单人、全身入镜的视频。不会把没有识别到当成动作正确。');return result;}
   if(multiple)add('quality','多人画面已排除',`${multiple} 个采样画面出现多人，未用来给动作建议。`,frames.find(f=>f.poses?.length>1)?.t);
@@ -62,7 +62,7 @@ export function analyzeStroke(frames,options){
     if((view==='side'||view==='quarter')&&complete(before,'elbow',5)&&complete(near,'elbow')){
       const range=span(before,'elbow'),middle=percentile(near.filter(r=>r.valid).map(r=>r.elbow),.5),point=minRow(near,'elbow');
       if(range.high-range.low<15&&middle<130){
-        add('review','单反前挥，回看持拍臂是否缺少展开空间',`准备末段到触球参考附近，持拍肘的主要投影变化约 ${Math.round(range.high-range.low)}°，触球附近中位数约 ${Math.round(middle)}°。先核对标记，再看有没有离球太近。不能单靠弯肘判定错误。`,point.t,{evidence:'单反 · 触球参考前0.6秒至后0.1秒',rule:'投影角中间80%范围差<15°，且触球附近中位数<130°，仅是 v5 候选片段筛选条件；并非单反标准。',drill:'先慢做引拍到前挥，给手臂自然向前展开的空间，再用较慢的腰高来球练习。不锁死手肘，也不追求和费德勒一样的角度。',source:'onehand'});alerts++;
+        add('review','单反前挥，回看持拍臂是否缺少展开空间',`准备末段到触球参考附近，持拍肘的主要投影变化约 ${Math.round(range.high-range.low)}°，触球附近中位数约 ${Math.round(middle)}°。先核对标记，再看有没有离球太近。不能单靠弯肘判定错误。`,point.t,{evidence:'单反 · 触球参考前0.6秒至后0.1秒',rule:'投影角中间80%范围差<15°，且触球附近中位数<130°，仅是 v6 候选片段筛选条件；并非单反标准。',drill:'先慢做引拍到前挥，给手臂自然向前展开的空间，再用较慢的腰高来球练习。不锁死手肘，也不追求和费德勒一样的角度。',source:'onehand'});alerts++;
       }
     }
     add('observation','单反看展开，不考“手肘够不够直”','手臂造型受握拍、来球和机位影响。优先回看准备和人与球的距离；没有球和球拍识别，本版不能判断击球点前后或拍面方向。',contact,{drill:'下一组先降低击球强度，观察是否有时间完成准备、是否能自然向前挥拍。只把动作做顺，不强拉手臂。',source:'backhand'});
@@ -71,7 +71,7 @@ export function analyzeStroke(frames,options){
     const preparation=rows.filter(r=>r.t>=Math.max(prep,contact-.7)&&r.t<=contact-.2);
     if((view==='front'||view==='quarter')&&complete(preparation,'armSpace',4)&&sustained(preparation,r=>r.valid&&r.armSpace!==null&&r.armSpace<.12,.2)){
       const point=minRow(preparation,'armSpace');
-      add('review','双反击球前，双肘靠近躯干线',`连续画面中，双肘到同侧肩髋线的平均距离低于躯干长度的12%。这个投影可能来自机位压缩；先回看双臂是否真的被身体挤住。`,point.t,{evidence:'双反 · 触球参考前0.7至0.2秒 · 连续不少于0.2秒',rule:'双肘平均离肩髋线距离/躯干长<0.12，仅为 v5 提醒阈值。不是理想间距，也不是三维测量。',drill:'下一组慢做转身准备，让双臂与身体之间留出自然挥拍空间。手不要夹紧身体，也不要刻意把两个肘撑开到某个宽度。',source:'twohand'});alerts++;
+      add('review','双反击球前，双肘靠近躯干线',`连续画面中，双肘到同侧肩髋线的平均距离低于躯干长度的12%。这个投影可能来自机位压缩；先回看双臂是否真的被身体挤住。`,point.t,{evidence:'双反 · 触球参考前0.7至0.2秒 · 连续不少于0.2秒',rule:'双肘平均离肩髋线距离/躯干长<0.12，仅为 v6 提醒阈值。不是理想间距，也不是三维测量。',drill:'下一组慢做转身准备，让双臂与身体之间留出自然挥拍空间。手不要夹紧身体，也不要刻意把两个肘撑开到某个宽度。',source:'twohand'});alerts++;
     }
     const f=nearestFrame(frames,contact),r=f?measurementForStroke(f,config):null;
     if(r?.valid)add('observation','双反的两只手，不必摆成一样',`触球参考附近，持拍手肘约 ${Math.round(r.elbow)}°，辅助手肘约 ${Math.round(r.auxElbow)}°。弯臂和伸展的组合都可能合理，不套单反或正手的“直臂”要求。`,f.t,{drill:'先用较慢来球练换握拍和转身准备，再回看双手是否一起顺畅带动球拍。不追求两个肘角度相同。',source:'twohand'});
@@ -87,7 +87,7 @@ export function analyzeStroke(frames,options){
     }
     if(view==='side'&&complete(loading,'knee')&&sustained(loading,r=>r.valid&&r.knee!==null&&r.knee>165,.1)){
       const point=minRow(loading,'knee');
-      add('review','举拍阶段，持拍侧腿接近伸直',`手动举拍参考附近，持拍侧膝的可见夹角超过165°。这是准备方式的观察，不代表必须增加蹬地或蹲得更深。`,point.t,{evidence:'发球 · 侧面 · 举拍参考附近',rule:'举拍阶段膝投影角>165°，仅为 v5 提醒阈值。简化发球方式及个人活动范围不同，不以屈膝深度判断发球水平。',drill:'下一组做轻松空挥，让腿部和上身自然衔接。不要为了提示刻意深蹲、起跳或追求更大力量。',source:'serve'});alerts++;
+      add('review','举拍阶段，持拍侧腿接近伸直',`手动举拍参考附近，持拍侧膝的可见夹角超过165°。这是准备方式的观察，不代表必须增加蹬地或蹲得更深。`,point.t,{evidence:'发球 · 侧面 · 举拍参考附近',rule:'举拍阶段膝投影角>165°，仅为 v6 提醒阈值。简化发球方式及个人活动范围不同，不以屈膝深度判断发球水平。',drill:'下一组做轻松空挥，让腿部和上身自然衔接。不要为了提示刻意深蹲、起跳或追求更大力量。',source:'serve'});alerts++;
     }
     if(view!=='unknown'&&complete(hit,'wristRise')&&sustained(hit,r=>r.valid&&r.wristRise!==null&&r.wristRise<.1,.1)){
       const point=minRow(hit,'wristRise');

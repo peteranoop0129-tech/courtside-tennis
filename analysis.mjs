@@ -1,6 +1,6 @@
 // Measurements are 2D observations. Alert thresholds are provisional engineering
 // triggers, not medical limits, validated coaching standards, or Federer targets.
-export const RULES_VERSION = 'v5.0-observation';
+export const RULES_VERSION = 'v6.0-observation';
 export const CONNECTIONS = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28],[27,29],[29,31],[28,30],[30,32]];
 export const SOURCES = {
   usta: { title: 'USTA 官方正手教学', url: 'https://www.youtube.com/watch?v=WXSI9PZrmI0' },
@@ -103,14 +103,14 @@ export function analyze(frames, options) {
     const knees=preparing.filter(r=>r.valid&&r.knee!==null);
     if(preparing.length>=4 && knees.length/preparing.length>=.8 && durationSupported(preparing,r=>r.valid&&r.knee!==null&&r.knee>165,.4)) {
       const point=knees.reduce((a,b)=>a.knee>b.knee?a:b);
-      add('review','准备阶段，回看腿有没有一直绷直',`持拍侧膝盖在连续画面中接近伸直，画面夹角超过 165°。这是候选问题，不是已经判定的错误。侧面投影仍会受身体转动影响。`,point.t,{evidence:'侧面 · 准备区间 · 连续不少于0.4秒',rule:'膝角 >165°，仅为 v5 提醒阈值，未经个人校准。不是理想角度。',drill:'下一组先慢做几次准备动作，保持腿部自然放松、可移动，再正常击球。不要为了角度刻意深蹲。',source:'usta'});alerts++;
+      add('review','准备阶段，回看腿有没有一直绷直',`持拍侧膝盖在连续画面中接近伸直，画面夹角超过 165°。这是候选问题，不是已经判定的错误。侧面投影仍会受身体转动影响。`,point.t,{evidence:'侧面 · 准备区间 · 连续不少于0.4秒',rule:'膝角 >165°，仅为 v6 提醒阈值，未经个人校准。不是理想角度。',drill:'下一组先慢做几次准备动作，保持腿部自然放松、可移动，再正常击球。不要为了角度刻意深蹲。',source:'usta'});alerts++;
     }
   }
   if(view==='front' && near.length>=3) {
     const tilts=near.filter(r=>r.valid&&r.tilt!==null);
     if(tilts.length/near.length>=.8 && durationSupported(near,r=>r.valid&&r.tilt!==null&&r.tilt>25,.2)) {
       const point=maximum(tilts,'tilt');
-      add('review','击球附近，上身侧倾值得回看',`肩髋中线与画面竖直方向最大约 ${Math.round(point.tilt)}°。对于你勾选的腰高正手练习，先检查是不是站位离球不合适。画面侧倾不等于真实重心不稳。`,point.t,{evidence:'正面 · 触球参考前后0.25秒',rule:'投影侧倾 >25° 且持续不少于0.2秒，仅为 v5 提醒阈值；手机本身歪斜会影响结果。',drill:'下一组降低来球速度，提前用小步调整与球的距离。先把站位调舒服，不要硬把上身掰直。',source:'usta'});alerts++;
+      add('review','击球附近，上身侧倾值得回看',`肩髋中线与画面竖直方向最大约 ${Math.round(point.tilt)}°。对于你勾选的腰高正手练习，先检查是不是站位离球不合适。画面侧倾不等于真实重心不稳。`,point.t,{evidence:'正面 · 触球参考前后0.25秒',rule:'投影侧倾 >25° 且持续不少于0.2秒，仅为 v6 提醒阈值；手机本身歪斜会影响结果。',drill:'下一组降低来球速度，提前用小步调整与球的距离。先把站位调舒服，不要硬把上身掰直。',source:'usta'});alerts++;
     }
   }
   const armRows=near.filter(r=>r.valid&&r.elbow!==null);

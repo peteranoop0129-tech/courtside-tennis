@@ -1,8 +1,8 @@
 /* Offline cache contains program assets only, never selected videos/reports. */
 const BASE = new URL('./', self.location.href);
 const PREFIX = 'courtside-' + BASE.pathname.replace(/[^a-z0-9]/gi, '_') + '-';
-const CACHE = PREFIX + 'v5.0.0';
-const SHELL = ['index.html','style.css','v4.css','v5.css','app.mjs','analysis.mjs','strokes.mjs','video-plan.mjs','coaching.mjs','players.mjs','player-ui.mjs','pose-worker.js','pwa.mjs','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
+const CACHE = PREFIX + 'v6.0.0';
+const SHELL = ['index.html','style.css','v4.css','v5.css','v6.css','app.mjs','analysis.mjs','strokes.mjs','video-plan.mjs','coaching.mjs','players.mjs','player-ui.mjs','player-coaching.mjs','pose-worker.js','pwa.mjs','manifest.webmanifest','icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 const MODEL = ['vendor/vision_bundle.mjs','vendor/wasm/vision_wasm_internal.js','vendor/wasm/vision_wasm_internal.wasm','vendor/wasm/vision_wasm_nosimd_internal.js','vendor/wasm/vision_wasm_nosimd_internal.wasm','models/pose_landmarker_lite.task'];
 const ASSETS = [...SHELL,...MODEL];
 const pathFor = name => new URL(name,BASE).href;
@@ -13,7 +13,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   await self.skipWaiting();
 })()));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
-async function inventory(){const cache=await caches.open(CACHE);let count=0;for(const name of ASSETS)if(await cache.match(pathFor(name)))count++;return {count,total:ASSETS.length,ready:count===ASSETS.length,version:'v5'};}
+async function inventory(){const cache=await caches.open(CACHE);let count=0;for(const name of ASSETS)if(await cache.match(pathFor(name)))count++;return {count,total:ASSETS.length,ready:count===ASSETS.length,version:'v6'};}
 let warming=null;
 async function warm(port){
   const cache=await caches.open(CACHE);
